@@ -1305,7 +1305,7 @@ class plot_dist_vs_energy(BaseNEBPlot):
             # Get the data from interpolation if the option was specified
             if self.interpolate_energy:
                 x_interp, y_interp = self.interpolate_energy_curve(
-                    names[self.nebm_index])
+                    self.rel_folder + names[self.nebm_index])
 
             if self.energy_shift is not None:
                 y_shift = y_data[self.energy_shift]
@@ -1580,6 +1580,8 @@ class plot_dist_vs_m(BaseNEBPlot):
 
     def __init__(self, simulation, m_components, *args, **kwargs):
 
+        setattr(self, 'secondary_axis', kwargs.get('secondary_axis', None))
+
         if not kwargs.get('number_annotation'):
             kwargs['number_annotation'] = [0.5] * 3
 
@@ -1606,6 +1608,20 @@ class plot_dist_vs_m(BaseNEBPlot):
         # This can be a Finmag or Fidimag simulation
         self.simulation = simulation
 
+        # Secondary axis ------------------------------------------------------
+        if self.ax2:
+            self.scale = self.secondary_axis[0]
+        # if self.ax2:
+        #     self.generate_secondary_axis_energy_scale()
+        if self.ax2:
+            self.secondary_axis_label += (r'Energy ('
+                                          + '{}'.format(self.secondary_axis[1])
+                                          + r')')
+            self.ax2.set_ylabel(self.secondary_axis_label)
+            if self.ylim_en:
+                self.ax2.set_ylim(self.ylim_en)
+        # ---------------------------------------------------------------------
+
         self.plot_neb_curves()
 
         # Decorate Plots ------------------------------------------------------
@@ -1620,18 +1636,7 @@ class plot_dist_vs_m(BaseNEBPlot):
         # Limits
         self.set_limits_and_ticks()
 
-        # Secondary axis
-        if self.secondary_axis:
-            self.generate_secondary_axis_energy_scale()
-
         self.decorate_plot(DISTANCE_LABEL, r'$ \langle m_{i} \rangle $')
-        if self.ax2:
-            self.secondary_axis_label += (r'Energy ('
-                                          + '{}'.format(self.scale_label)
-                                          + r')')
-            self.ax2.set_ylabel(self.secondary_axis_label)
-            if self.ylim_en:
-                self.ax2.set_ylim(self.ylim_en)
 
     def plot_neb_curves(self):
 
@@ -1656,7 +1661,9 @@ class plot_dist_vs_m(BaseNEBPlot):
                                         self.simulation.m_field.average()
                                         ))
                 elif self.backend == 'FIDIMAG':
-                    y_data.append(self.simulation.compute_average())
+                    y_data = np.vstack((y_data,
+                                        self.simulation.compute_average()
+                                        ))
                 else:
                     raise ValueError('Choose between FINMAG or FIDIMAG')
 

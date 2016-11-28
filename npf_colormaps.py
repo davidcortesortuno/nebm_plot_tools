@@ -91,7 +91,7 @@ dname = os.path.dirname(abspath)
 # For the third column, remove the extra '\' (read until the sixth character)
 # for this we use 'converters'
 # Finally, do not consider the 0th column
-my_rgb = np.loadtxt(dname + '/parula.txt',
+my_rgb = np.loadtxt(dname + '/cmaps/parula.txt',
                     skiprows=2,
                     converters={3: lambda s: float(s[:6])},
                     usecols=(1, 2, 3))
