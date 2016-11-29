@@ -460,7 +460,7 @@ class BaseNEBPlot(object):
                            'grid': True,
                            'x_scale': None,
                            'legend_ncol': 2,
-                           # 'secondary_axis': None,
+                           'secondary_axis': None,
                            'legend_title': None,
                            'nticks_x': None,
                            'nticks_y': None,
@@ -860,23 +860,42 @@ class BaseNEBPlot(object):
 
         energy_data = np.loadtxt(self.rel_folder +
                                  names[self.energy_index])[names[self.step_index]][1:]
+        if self.interpolate_energy:
+            x_interp, y_interp = self.interpolate_energy_curve(
+                '{}npys/{}_{}'.format(self.rel_folder,
+                                      names[self.sim_index],
+                                      names[self.step_index],
+                                      ))
+            y_interp /= self.scale
 
         # Scale energy
         y_data = energy_data / self.scale
 
         if self.energy_shift is not None:
-            y_data -= y_data[self.energy_shift],
+            y_shift = y_data[self.energy_shift]
+            # From the energy of every image in the band, subtract
+            # the energy of the image specified by 'energy_shift'
+            y_data -= y_shift
+
+            # Redefine zero point of interpolated data if corresponds
+            if self.interpolate_energy:
+                y_interp -= y_shift
 
         p2, = self.ax2.plot(x_data, y_data,
                             marker=next(self.markers),
                             color=next(self.ax._get_lines.prop_cycler)['color'],
                             markeredgecolor='black',
                             markeredgewidth=1.5,
-                            # label=names[self.label_index]
+                            lw=2 * int(not bool(self.interpolate_energy)),
                             )
 
         self.plots.append(p2)
         self.labels.append(r'Energy')
+
+        if self.interpolate_energy:
+            p2.set_zorder(3)
+            self.ax2.plot(x_interp, y_interp, lw=2,
+                          color=p2.get_color(), zorder=2)
 
         self.annotate_numbers(self.ax2, x_data, energy_data / self.scale,
                               num_scale=self.number_annotation_en,
@@ -893,16 +912,16 @@ class BaseNEBPlot(object):
 
         This function loads the images from the specified NPY folder into a
         NEBM simulation and returns two arrays with the data to interpolate an
-        energy curve. Thus, the function requires that: self.nebm_class, self.sim
-        and self.interp_res are defined (how they are defined depends on the
-        child class).
+        energy curve. Thus, the function requires that: self.nebm_class,
+        self.simulation and self.interp_res are defined (how they are defined
+        depends on the child class).
 
         """
         images = [np.load(os.path.join(npys_folder, _file))
                   for _file in sorted(os.listdir(npys_folder),
                                       key=lambda f: int(re.search('\d+', f).group(0))
                                       )]
-        nebm_sim = self.nebm_class(self.sim, images)
+        nebm_sim = self.nebm_class(self.simulation, images)
         l, E = nebm_sim.compute_polynomial_approximation(self.interp_res)
 
         return l, E
@@ -1229,7 +1248,6 @@ class plot_dist_vs_energy(BaseNEBPlot):
 
     def __init__(self, *args, **kwargs):
 
-        setattr(self, 'secondary_axis', kwargs.get('secondary_axis', None))
         setattr(self, 'widget', kwargs.get('widget', None))
 
         super(plot_dist_vs_energy, self).__init__(*args,
@@ -1243,7 +1261,7 @@ class plot_dist_vs_energy(BaseNEBPlot):
 
         if self.interpolate_energy:
             self.nebm_class = self.interpolate_energy[0]
-            self.sim = self.interpolate_energy[1]
+            self.simulation = self.interpolate_energy[1]
             self.interp_res = self.interpolate_energy[2]
             self.nebm_index = 4
 
@@ -1420,6 +1438,20 @@ class plot_dist_vs_sknum(BaseNEBPlot):
                  components from the images
                * The energy file is optional
 
+    secondary_axis  ::      If the *energy_file was specified in any of the
+                            sims lists, this option is necessary to show the
+                            energy curve. Specify this argument as a two
+                            element list, where the first argument is the
+                            energy scale and the second one a label with the
+                            energy units, e.g.
+                                    [1.602e-19, 'eV']
+
+    interpolate_energy  ::  This option can be added to the secondary_axis to
+                            use an interpolation for the energy curve.
+                            Specify this option as a two elements list with:
+                            (i) the NEBM class and (ii) te resolution of the
+                            interpolation.
+
     """
     # Inherit the doc from the BasePlot
     __doc__ += BaseNEBPlot.__doc__
@@ -1438,10 +1470,17 @@ class plot_dist_vs_sknum(BaseNEBPlot):
 
         self.ax2 = None
 
+        # If the energy file was specified in any of the lists, initiate
+        # the secondary axis ax2 using the same x-axis than ax
         for names in self.sims:
             if len(names) == 5 and str(names[-1]).endswith('energy.ndt'):
                 self.init_secondary_axis()
                 break
+
+        # Parameters to interpolate the energy curve if necessary
+        if self.interpolate_energy:
+            self.nebm_class = self.interpolate_energy[0]
+            self.interp_res = self.interpolate_energy[1]
 
         (self.energy_index,
          self.dms_index,
@@ -1452,12 +1491,17 @@ class plot_dist_vs_sknum(BaseNEBPlot):
         # This can be a Finmag or Fidimag simulation
         self.simulation = simulation
 
+        # Secondary axis ------------------------------------------------------
+
+        if self.ax2:
+            self.scale = self.secondary_axis[0]
+
+        # ---------------------------------------------------------------------
+
+        # Plot the sk number curves and (if corresponds) the energy curves
         self.plot_neb_curves()
 
         # Decorate Plots ------------------------------------------------------
-
-        # OPTIONAL Initial State Energy Plots
-        # self.plot_initial_energy_curve()
 
         # Top and bottom plots ------------------------------------------------
         self.insert_images_plots()
@@ -1468,13 +1512,21 @@ class plot_dist_vs_sknum(BaseNEBPlot):
         self.set_limits_and_ticks()
 
         self.decorate_plot(DISTANCE_LABEL, r'$ Q $')
+
         if self.ax2:
             self.secondary_axis_label += (r'Energy ('
-                                          + '{}'.format(self.scale_label)
+                                          + '{}'.format(self.secondary_axis[1])
                                           + r')')
             self.ax2.set_ylabel(self.secondary_axis_label)
             if self.ylim_en:
                 self.ax2.set_ylim(self.ylim_en)
+
+            # Necessary in case that an energy curve is interpolated, since
+            # its legend only shows the markers
+            for mark in self.ax.get_legend().legendHandles:
+                if mark.get_linewidth() < 0.1:
+                    mark.set_linewidth(2)
+                    mark.lineStyles['-'] = '_draw_solid'
 
     def plot_neb_curves(self):
 
@@ -1486,7 +1538,6 @@ class plot_dist_vs_sknum(BaseNEBPlot):
             # Now store all the skyrmion numbers computed with finmag /fidimag
             # for each image in a python array. The rows represent different
             # images
-
             y_data = []
             for files in npys_flist:
                 # Load the magnetization profile
@@ -1505,6 +1556,8 @@ class plot_dist_vs_sknum(BaseNEBPlot):
                 else:
                     raise ValueError('Choose between FINMAG or FIDIMAG')
 
+            # Plot an energy curve in ax2 if the energy file is in the present
+            # list (names), and redefine the legend
             if len(names) == 5 and str(names[-1]).endswith('energy.ndt'):
                 # Make a white box to simulate a title in the legend
                 # The idea is to make something like:
@@ -1521,6 +1574,7 @@ class plot_dist_vs_sknum(BaseNEBPlot):
 
                 self.secondary_axis_energy_plot(x_data, names)
 
+            # Plot the sk number curve
             y_data = np.array(y_data)
             self.plot_sk_number_curve(x_data, y_data, names)
 
@@ -1541,7 +1595,7 @@ class plot_dist_vs_sknum(BaseNEBPlot):
         else:
             self.labels.append(names[self.label_index])
 
-        # See energy_curve plot function for an explanation
+        # Annotate the numbers if they were specified
         if self.sims.index(names) in self.num_labels:
             self.annotate_numbers(self.ax, x_data, y_data,
                                   num_scale=self.number_annotation,
@@ -1574,13 +1628,25 @@ class plot_dist_vs_m(BaseNEBPlot):
                  components from the images
                * The energy file is optional
 
+    secondary_axis  ::      If the *energy_file was specified in any of the
+                            sims lists, this option is necessary to show the
+                            energy curve. Specify this argument as a two
+                            element list, where the first argument is the
+                            energy scale and the second one a label with the
+                            energy units, e.g.
+                                    [1.602e-19, 'eV']
+
+    interpolate_energy  ::  This option can be added to the secondary_axis to
+                            use an interpolation for the energy curve.
+                            Specify this option as a two elements list with:
+                            (i) the NEBM class and (ii) te resolution of the
+                            interpolation.
+
     """
     # Inherit the doc from the BasePlot
     __doc__ += BaseNEBPlot.__doc__
 
     def __init__(self, simulation, m_components, *args, **kwargs):
-
-        setattr(self, 'secondary_axis', kwargs.get('secondary_axis', None))
 
         if not kwargs.get('number_annotation'):
             kwargs['number_annotation'] = [0.5] * 3
@@ -1593,6 +1659,10 @@ class plot_dist_vs_m(BaseNEBPlot):
             if len(names) == 5 and str(names[-1]).endswith('energy.ndt'):
                 self.init_secondary_axis()
                 break
+
+        if self.interpolate_energy:
+            self.nebm_class = self.interpolate_energy[0]
+            self.interp_res = self.interpolate_energy[1]
 
         self.m_components = m_components
         self.backend = kwargs.get('backend', 'FINMAG')
@@ -1611,15 +1681,7 @@ class plot_dist_vs_m(BaseNEBPlot):
         # Secondary axis ------------------------------------------------------
         if self.ax2:
             self.scale = self.secondary_axis[0]
-        # if self.ax2:
-        #     self.generate_secondary_axis_energy_scale()
-        if self.ax2:
-            self.secondary_axis_label += (r'Energy ('
-                                          + '{}'.format(self.secondary_axis[1])
-                                          + r')')
-            self.ax2.set_ylabel(self.secondary_axis_label)
-            if self.ylim_en:
-                self.ax2.set_ylim(self.ylim_en)
+
         # ---------------------------------------------------------------------
 
         self.plot_neb_curves()
@@ -1637,6 +1699,21 @@ class plot_dist_vs_m(BaseNEBPlot):
         self.set_limits_and_ticks()
 
         self.decorate_plot(DISTANCE_LABEL, r'$ \langle m_{i} \rangle $')
+        
+        if self.ax2:
+            self.secondary_axis_label += (r'Energy ('
+                                          + '{}'.format(self.secondary_axis[1])
+                                          + r')')
+            self.ax2.set_ylabel(self.secondary_axis_label)
+            if self.ylim_en:
+                self.ax2.set_ylim(self.ylim_en)
+
+            # Necessary in case that an energy curve is interpolated, since
+            # its legend only shows the markers
+            for mark in self.ax.get_legend().legendHandles:
+                if mark.get_linewidth() < 0.1:
+                    mark.set_linewidth(2)
+                    mark.lineStyles['-'] = '_draw_solid'
 
     def plot_neb_curves(self):
 
