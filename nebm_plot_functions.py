@@ -241,6 +241,8 @@ D_PALETTE = npf_cm.d_palette1
 # Default annotated numbers size
 DEFAULT_NUM_FONTSIZE = 18
 
+BACKEND = 'FIDIMAG'
+
 """
 
 The base for the 3 plots styles we can generate from the NEB simulations data:
@@ -943,9 +945,9 @@ def plot_mayavi2(simname,
                  thumbnails_size='300x300',
                  rel_folder='./',
                  # extension='vtu',
-                 vtk_name='image_',
+                 # vtk_name='image_',
                  interpolation='gouraud',
-                 fidimag=False,
+                 # fidimag=False,
                  text_fontsize=170,
                  text_color='black',
                  ):
@@ -991,9 +993,6 @@ def plot_mayavi2(simname,
     extension (DEPRECATED) --> The VTK files extension. By default it is vtu, but it
                    could also change, to 'vtk' or 'pvd' for example
 
-    vtk_name   --> This can be changed in case the vtk names differ
-                   from Fidimag's usual outputs
-
     interpolation --> Surface interpolation: 'gouraud', 'phong', 'flat'
 
     """
@@ -1002,18 +1001,18 @@ def plot_mayavi2(simname,
     f = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0), size=(200, 200))
 
     try:
-        if not fidimag:
+        if BACKEND == 'FINMAG':
             # Read a data file.
             data = mlab.pipeline.open('{}vtks/{}/'
                                       'image_000000.vtu'.format(rel_folder,
                                                                 simname,
                                                                 ))
-        else:
+        elif BACKEND == 'FIDIMAG':
             # Read a data file.
             data = mlab.pipeline.open('{}vtks/{}/'
                                       'm_000000.{}'.format(rel_folder,
                                                            simname,
-                                                           fidimag
+                                                           'vtk'  # can be an option
                                                            ))
     except:
         print('Not a valid VTK file (check the files path)')
@@ -1022,7 +1021,7 @@ def plot_mayavi2(simname,
     # Currently fidimag does not filter the points with zero Ms
     # We will avoid them using a threshold value for the magnetisation norm
     # Finmag does not have this problem
-    if not fidimag:
+    if BACKEND == 'FIDIMAG':
         # Extract vector components.
         vecomp = mlab.pipeline.extract_vector_components(data)
     else:
@@ -1074,7 +1073,7 @@ def plot_mayavi2(simname,
         data.timestep = step
         # We need to update the threshold value in case we use
         # finmag's vtk files
-        if fidimag:
+        if BACKEND == 'FIDIMAG':
             try:
                 # If there is no point with zero 'm', this threshold fails
                 vtres.lower_threshold = 0.01
@@ -1461,9 +1460,7 @@ class plot_dist_vs_sknum(BaseNEBPlot):
                                                  **kwargs
                                                  )
 
-        self.backend = kwargs.get('backend', 'FINMAG')
-
-        if self.backend == 'FIDIMAG':
+        if BACKEND == 'FIDIMAG':
             # Methods are only defined for Fidimag simulations
             self.sk_number_method = kwargs.get('sk_number_method',
                                                'FiniteSpinChirality')
@@ -1549,9 +1546,9 @@ class plot_dist_vs_sknum(BaseNEBPlot):
                     )
                     ))
 
-                if self.backend == 'FINMAG':
+                if BACKEND == 'FINMAG':
                     y_data.append(-self.simulation.skyrmion_number())
-                elif self.backend == 'FIDIMAG':
+                elif BACKEND == 'FIDIMAG':
                     y_data.append(self.simulation.skyrmion_number(method=self.sk_number_method))
                 else:
                     raise ValueError('Choose between FINMAG or FIDIMAG')
@@ -1665,7 +1662,6 @@ class plot_dist_vs_m(BaseNEBPlot):
             self.interp_res = self.interpolate_energy[1]
 
         self.m_components = m_components
-        self.backend = kwargs.get('backend', 'FINMAG')
 
         self.m_labels = [r'$m_{x}$', r'$m_{y}$', r'$m_{z}$']
 
@@ -1733,11 +1729,11 @@ class plot_dist_vs_m(BaseNEBPlot):
                     )
                     ))
 
-                if self.backend == 'FINMAG':
+                if BACKEND == 'FINMAG':
                     y_data = np.vstack((y_data,
                                         self.simulation.m_field.average()
                                         ))
-                elif self.backend == 'FIDIMAG':
+                elif BACKEND == 'FIDIMAG':
                     y_data = np.vstack((y_data,
                                         self.simulation.compute_average()
                                         ))
