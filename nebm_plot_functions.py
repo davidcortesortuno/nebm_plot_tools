@@ -297,7 +297,7 @@ class BaseNEBPlot(object):
                              annotated numbers on every image. Default is zero
                              (the first curve on the 'sims' list)
 
-    number_annotation    ::  Optional image number annotation for the overview
+    num_scale    ::  Optional image number annotation for the overview
                              plots.  This is passed as a list or integer:
 
                              A list for magnetisation plots:
@@ -308,7 +308,7 @@ class BaseNEBPlot(object):
                              The image number of each data point are placed as
                              a factor of the difference between the smallest
                              and largest value in the y-axis.  A larger
-                             number_annotation would mean a larger separation
+                             num_scale would mean a larger separation
                              of the numbers from each data point. A negative
                              num_factor would put the numbers below the data
                              points.  If the factor is zero, the numbers are
@@ -379,7 +379,7 @@ class BaseNEBPlot(object):
     num_labels           ::  An integer to plot numbers in the 'num_labels'th
                              curve of the 'sims' list
 
-    number_annotation_en ::  Option to scale the annotation numbers for the
+    num_scale_en ::  Option to scale the annotation numbers for the
                              optional energy axis in the magnetisation or sk
                              number plots
 
@@ -430,8 +430,8 @@ class BaseNEBPlot(object):
                            # 'mesh': None,
                            # 'Ms': None,
                            'num_labels': [0],
-                           'number_annotation': 0.5,
-                           'number_annotation_en': None,
+                           'num_scale': 0.5,
+                           'num_scale_en': None,
                            'ylim_en': None,
                            'x_scale': None,
                            'num_fontsize': DEFAULT_NUM_FONTSIZE,
@@ -553,9 +553,7 @@ class BaseNEBPlot(object):
                          x_data,
                          y_data,
                          ylim=None,
-                         num_scale=None,
-                         num_index=None,
-                         c_index=None,
+                         scale=None,
                          color=None,
                          ):
         """
@@ -566,31 +564,19 @@ class BaseNEBPlot(object):
 
             y_data  :: Must be a Numpy array!
 
-            c_index :: for the magnetisation components annotations
-                       (see the corresponding plot function). This
-                       index indicates which column is extracted
-                       from a (3, N) y_data array
-
-            num_index is an index of the element in the number_annotation
-                      element if number_annotation is passed as a list
-
             color  (Experimental)
 
         """
 
-        # Annotate numbers below points if specified. The number_annotation is
+        # Annotate numbers below points if specified. The num_scale is
         # set as the scale factor in the plotting functions
-        if num_scale:
+        if scale:
             # Draw only the points inside the ylim range if corresponds. There
             # is a problem with the white space when they are out of range
             nums = np.arange(len(x_data))
 
-            ax_scale = (np.max(y_data) - np.min(y_data)) / len(y_data)
-
-            if isinstance(num_scale, list):
-                ax_scale = ax_scale * num_scale[num_index]
-            else:
-                ax_scale = ax_scale * num_scale
+            ax_scale = np.max(np.abs(y_data[1:] - y_data[:-1]))
+            ax_scale = ax_scale * scale
 
             # Draw only the points inside the ylim range if corresponds
             # There is a problem with the white space when they are
@@ -598,12 +584,15 @@ class BaseNEBPlot(object):
             if ylim:
                 nums = nums[y_data < ylim[1]]
 
+            if not color:
+                color = 'black'
             for i in nums:
                 ax.annotate(str(i),
                             xy=(x_data[i], y_data[i] + ax_scale),
                             textcoords='data',
                             horizontalalignment='center',
-                            fontsize=self.num_fontsize
+                            fontsize=self.num_fontsize,
+                            color=color
                             )
 
     # -----------------------------------------------------------------------
@@ -900,7 +889,7 @@ class BaseNEBPlot(object):
                           color=p2.get_color(), zorder=2)
 
         self.annotate_numbers(self.ax2, x_data, energy_data / self.scale,
-                              num_scale=self.number_annotation_en,
+                              scale=self.num_scale_en,
                               ylim=self.ylim_en
                               )
 
@@ -1367,26 +1356,31 @@ class plot_dist_vs_energy(BaseNEBPlot):
         # numbers are not overlapped)
 
         # If number annotation is a list, we will scale the position according
-        # to the factors in number_annotation. For this, we find the index of
+        # to the factors in num_scale. For this, we find the index of
         # the curve in the 'sims' list, and check which index corresponds to
         # this curve in the num_labels list Therefore, num_labels must be equal
-        # in length than number_annotation
+        # in length than num_scale
         # For example, if I have
         # sims = [[energy_file1, dms_file1, 'string1', num1],
         #         [energy_file2, dms_file2, 'string2', num2]
         #        ]
         # num_labels = [1]   --> only the sims[1] curve will be annotated
-        # number_annotation = [0, 1]
+        # num_scale = [0, 1]
         #
         # Then, [energy_file2, ..] has the 1th index in the 'sims' list,
         # and THIS element IS the 0th index in the num_labels list
         # Thus, we use the 0th element of num_factor to scale the 1th curve
         #
-        if self.sims.index(names) in self.num_labels:
+        if self.num_labels and self.sims.index(names) in self.num_labels:
+            if isinstance(self.num_scale, list):
+                num_index = self.num_labels.index(self.sims.index(names))
+                scale = self.num_scale[num_index]
+            else:
+                scale = self.num_scale
+
             self.annotate_numbers(self.ax, x_data, y_data / self.scale,
                                   ylim=self.ylim,
-                                  num_scale=self.number_annotation,
-                                  num_index=self.num_labels.index(self.sims.index(names)),
+                                  scale=scale
                                   )
 
         # ---------------------------------------------------------------------
@@ -1593,11 +1587,16 @@ class plot_dist_vs_sknum(BaseNEBPlot):
             self.labels.append(names[self.label_index])
 
         # Annotate the numbers if they were specified
-        if self.sims.index(names) in self.num_labels:
+        if self.num_labels and self.sims.index(names) in self.num_labels:
+            if isinstance(self.num_scale, list):
+                num_index = self.num_labels.index(self.sims.index(names))
+                scale = self.num_scale[num_index]
+            else:
+                scale = self.num_scale
+
             self.annotate_numbers(self.ax, x_data, y_data,
-                                  num_scale=self.number_annotation,
-                                  ylim=self.ylim,
-                                  num_index=self.num_labels.index(self.sims.index(names)),
+                                  scale=scale,
+                                  ylim=self.ylim
                                   )
 
 
@@ -1645,9 +1644,6 @@ class plot_dist_vs_m(BaseNEBPlot):
 
     def __init__(self, simulation, m_components, *args, **kwargs):
 
-        if not kwargs.get('number_annotation'):
-            kwargs['number_annotation'] = [0.5] * 3
-
         super(plot_dist_vs_m, self).__init__(*args,
                                              **kwargs
                                              )
@@ -1662,6 +1658,9 @@ class plot_dist_vs_m(BaseNEBPlot):
             self.interp_res = self.interpolate_energy[1]
 
         self.m_components = m_components
+
+        if not kwargs.get('num_scale'):
+            kwargs['num_scale'] = [[0.5 if v is True else 0 for v in self.m_components]]
 
         self.m_labels = [r'$m_{x}$', r'$m_{y}$', r'$m_{z}$']
 
@@ -1695,7 +1694,7 @@ class plot_dist_vs_m(BaseNEBPlot):
         self.set_limits_and_ticks()
 
         self.decorate_plot(DISTANCE_LABEL, r'$ \langle m_{i} \rangle $')
-        
+
         if self.ax2:
             self.secondary_axis_label += (r'Energy ('
                                           + '{}'.format(self.secondary_axis[1])
@@ -1758,12 +1757,50 @@ class plot_dist_vs_m(BaseNEBPlot):
             if len(names) == 5 and str(names[-1]).endswith('energy.ndt'):
                 self.secondary_axis_energy_plot(x_data, names)
 
+            # Number annotation of m curves -----------------------------------
+            # The num_scale can be either a list of lists OR a list of floats.
+            # num_scale must have the same number of elements than num_labels.
+            # We first check if the curve index is in the num_labels list. If
+            # so, we use its index to get the position in the num_scale list.
+            #
+            # If the num_scale[curve_index] is a list, we can either specify
+            # a list of scales for every True component in self.m_components.
+            # If it is just a float, we use the same scale for m_x, m_y, m_z
+            #
+            # Example: If we have two curves with
+            #   self.m_components=(True, False, True)
+            # (i.e. we only plot m_x and m_z) and:
+            #   num_labels = [1]
+            #   num_scale = [[1, -1]]
+            #
+            # Then, for the 1-th curve:
+            #   num_scale_list = [1, 0, -1]
+            #
+            # Or if num_scale = [2], then
+            #   num_scale_list = [2, 2, 2]
+            # -------------------------------------------------
+            # If num_labels = False, num_scale_list = [0, 0, 0]
+            #
+            # When num_scale_list[i] is zero, annotated numbers are not shown
+            if self.num_labels and self.sims.index(names) in self.num_labels:
+                num_index = self.num_labels.index(self.sims.index(names))
+                if isinstance(self.num_scale[num_index], list):
+                    num_iter = itertools.cycle(self.num_scale[num_index])
+                    num_scale_list = [next(num_iter) if v is True else 0
+                                      for v in self.m_components]
+                else:
+                    num_scale_list = [self.num_scale[num_index] if v is True
+                                      else 0 for v in self.m_components]
+            else:
+                num_scale_list = [0] * 3
+            # -----------------------------------------------------------------
+
             # Now plot the averages if they are specified in the arguments
             for i, m_label in enumerate(self.m_labels):
                 if self.m_components[i]:
-                    self.plot_m_average_curve(x_data, y_data, names, i)
+                    self.plot_m_average_curve(x_data, y_data, names, i, num_scale_list[i])
 
-    def plot_m_average_curve(self, x_data, y_data, names, c_index):
+    def plot_m_average_curve(self, x_data, y_data, names, c_index, num_scale):
         p, = self.ax.plot(x_data, y_data[:, c_index],
                           marker=next(self.markers),
                           lw=2,
@@ -1777,13 +1814,10 @@ class plot_dist_vs_m(BaseNEBPlot):
         self.labels.append(self.m_labels[c_index])
 
         # See energy_curve plot function for an explanation
-        if self.sims.index(names) in self.num_labels:
-            self.annotate_numbers(self.ax, x_data, y_data[:, c_index],
-                                  num_scale=self.number_annotation[c_index],
-                                  ylim=self.ylim,
-                                  num_index=self.num_labels.index(self.sims.index(names)),
-                                  c_index=c_index
-                                  )
+        self.annotate_numbers(self.ax, x_data, y_data[:, c_index],
+                              scale=num_scale,
+                              ylim=self.ylim,
+                              )
 
 
 # -----------------------------------------------------------------------------

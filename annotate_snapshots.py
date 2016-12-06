@@ -55,3 +55,6 @@ def annotate_snapshots(pngs_folder_path, fontsize=26, color='black'):
         # OR
         # extent = ax.get_window_extent().transformed(plt.gcf().dpi_scale_trans.inverted())
         # plt.savefig(outputname, bbox_inches=extent)
+
+    # To avoid showing the last snapshot in the notebook
+    plt.close()
