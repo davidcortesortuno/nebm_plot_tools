@@ -448,11 +448,12 @@ class BaseNEBPlot(object):
                            # Arguments for top and bottom images plots --------
                            'cmap': 'RdYlBu',
                            # Left alignment for both top and bottom figures:
-                           'images_left_align': 0.1,
-                           'images_top_figure_align': 1.12,
+                           'top_figure_h_shift': 0,
+                           'top_figure_v_shift': 0,
                            'top_figure': None,
                            'bottom_figure': None,
-                           'images_bottom_figure_align': None,
+                           'bottom_figure_h_shift': 0,
+                           'bottom_figure_v_shift': 0,
                            'top_figure_frame': None,
                            'bottom_figure_frame': None,
                            'colorbar': 'top',
@@ -532,7 +533,9 @@ class BaseNEBPlot(object):
             #                          )
             self.ax = self.fig.add_subplot(111)
         else:
-            self.ax = self.fig.add_axes([0.1, 0.1, 1, 1])
+            # self.ax = self.fig.add_axes([0.1, 0.1, 1, 1])
+            # These are the default values from matplotlib figures:
+            self.ax = self.fig.add_axes([0.125, 0.125, 0.9 - 0.125, 0.9 - 0.125])
 
         # ax.set_color_cycle([cm(k) for k in np.linspace(0, 1, len(sims) * 3)])
         self.ax.set_prop_cycle(cycler('color', D_PALETTE))
@@ -619,6 +622,10 @@ class BaseNEBPlot(object):
 
     def insert_top_plot(self):
 
+        # Get the positions of the axes box (bottom left and top right corners):
+        #   [[x0, y0], [x1, y1]]
+        ax_pos = self.ax.get_position()
+
         # ---------------------------------------------------------------------
         # Load the image in png format
         # im_grid = read_png(grid_filen)
@@ -626,16 +633,20 @@ class BaseNEBPlot(object):
         h, w = float(im_grid.shape[0]), float(im_grid.shape[1])
 
         # The height of the top figure will be given as a proportion of the
-        # height of the main figure. The main figure height H is '1' in
+        # height of the main figure. The main figure height H is 'y1 - y0' in
         # relative coordinates
         images_height = (self.fig_aspect[0] * h / w) / self.fig_aspect[1]
-        images_width = 1
+        # images_width = 1
 
         # Add axis for an image above the plot
         # [left, bottom, width, height]
-        self.top_ax = self.fig.add_axes([self.images_left_align,
-                                         self.images_top_figure_align,
-                                         images_width,
+        # If bottom = ax_pos.y1, it works for every fig_aspect, and there is
+        # a small gap between the main figure and the top plot
+        # We will try to reduce the gap a little, but this doesn't work
+        # when height > width for the main figure
+        self.top_ax = self.fig.add_axes([ax_pos.x0 + self.top_figure_h_shift,
+                                         ax_pos.y1 - 0.05 + self.top_figure_v_shift,
+                                         ax_pos.x1 - ax_pos.x0,
                                          images_height
                                          ],
                                         # aspect=900/2100
@@ -646,9 +657,6 @@ class BaseNEBPlot(object):
 
         # ---------------------------------------------------------------------
 
-        # self.top_ax.set_ylim([0, im_grid.shape[0]])
-        # self.top_ax.set_xlim([0, im_grid.shape[1]])
-        # self.top_ax.set_adjustable('datalim')
         # This will fill up the second axis, top_ax
         self.top_ax.imshow(im_grid,
                            # extent=[0, im_grid.shape[1], 0, im_grid.shape[0]]
@@ -659,6 +667,10 @@ class BaseNEBPlot(object):
                 spine.set_edgecolor(self.top_figure_frame)
 
     def insert_bottom_plot(self):
+        # Get the positions of the axes box (bottom left and top right corners):
+        #   [[x0, y0], [x1, y1]]
+        ax_pos = self.ax.get_position()
+
         # An extra figure will be plotted down the plot (EXPERIMENTAL)
         im_grid = mpimg.imread(self.bottom_figure)
         h, w = float(im_grid.shape[0]), float(im_grid.shape[1])
@@ -667,11 +679,9 @@ class BaseNEBPlot(object):
 
         # Add axis for an image above the plot
         # [left, bottom, width, height]
-        if not self.images_bottom_figure_align:
-            self.images_bottom_figure_align = (-1) * images_height - 0.15
-        self.bottom_ax = self.fig.add_axes([self.images_left_align,
-                                            self.images_bottom_figure_align,
-                                            images_width,
+        self.bottom_ax = self.fig.add_axes([ax_pos.x0 + self.bottom_figure_h_shift,
+                                            -ax_pos.y1 + 0.05 + self.bottom_figure_v_shift,
+                                            ax_pos.x1 - ax_pos.x0,
                                             images_height
                                             ],
                                            )
