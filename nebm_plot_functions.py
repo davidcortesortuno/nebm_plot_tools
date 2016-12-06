@@ -430,7 +430,7 @@ class BaseNEBPlot(object):
                            # 'mesh': None,
                            # 'Ms': None,
                            'num_labels': [0],
-                           'num_scale': 0.5,
+                           'num_scale': 0.04,
                            'num_scale_en': None,
                            'ylim_en': None,
                            'x_scale': None,
@@ -578,8 +578,8 @@ class BaseNEBPlot(object):
             # is a problem with the white space when they are out of range
             nums = np.arange(len(x_data))
 
-            ax_scale = np.max(np.abs(y_data[1:] - y_data[:-1]))
-            ax_scale = ax_scale * scale
+            # ax_scale = np.max(np.abs(y_data[1:] - y_data[:-1]))
+            # ax_scale = ax_scale * scale
 
             # Draw only the points inside the ylim range if corresponds
             # There is a problem with the white space when they are
@@ -590,13 +590,26 @@ class BaseNEBPlot(object):
             if not color:
                 color = 'black'
             for i in nums:
-                ax.annotate(str(i),
-                            xy=(x_data[i], y_data[i] + ax_scale),
-                            textcoords='data',
-                            horizontalalignment='center',
-                            fontsize=self.num_fontsize,
-                            color=color
-                            )
+                a = ax.annotate(str(i),
+                                xy=(x_data[i], y_data[i]),
+                                textcoords='data',
+                                horizontalalignment='center',
+                                fontsize=self.num_fontsize,
+                                color=color
+                                )
+                # Get annotation position as display data
+                a_d = self.ax.transData.transform(a.get_position())
+                # Shift this position by adding a scale in Axes-coordinates
+                # (from 0 to 1) transformed in display data
+                new_a = a_d + (self.ax.transAxes.transform((0, scale)) 
+                               - self.ax.transAxes.transform((0, 0)))
+                # Get the new position back into data coordinates and update
+                # the annotation position
+                a.set_position(self.ax.transData.inverted().transform(new_a))
+
+                # This might not work perfectly since, when adding new curves,
+                # self.ax changes its limits, so larger scales are required 
+                # for the last curves
 
     # -----------------------------------------------------------------------
 
