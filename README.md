@@ -2,6 +2,8 @@
 
 Plot library for the NEBM data produced by Fidimag (and Finmag)
 
+The functionality is demonstrated in the [Tutorial](tutorial/tutorial_fidimag.ipynb).
+
  <br />
 ---
 
