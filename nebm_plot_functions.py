@@ -458,6 +458,7 @@ class BaseNEBPlot(object):
                            'bottom_figure_frame': None,
                            'colorbar': 'top',
                            'colorbar_label': r'$m_{z}$',
+                           'colorbar_offset': 10,
                            # Decorations --------------------------------------
                            'optional_energy': False,
                            'grid': True,
@@ -601,14 +602,14 @@ class BaseNEBPlot(object):
                 a_d = self.ax.transData.transform(a.get_position())
                 # Shift this position by adding a scale in Axes-coordinates
                 # (from 0 to 1) transformed in display data
-                new_a = a_d + (self.ax.transAxes.transform((0, scale)) 
+                new_a = a_d + (self.ax.transAxes.transform((0, scale))
                                - self.ax.transAxes.transform((0, 0)))
                 # Get the new position back into data coordinates and update
                 # the annotation position
                 a.set_position(self.ax.transData.inverted().transform(new_a))
 
                 # This might not work perfectly since, when adding new curves,
-                # self.ax changes its limits, so larger scales are required 
+                # self.ax changes its limits, so larger scales are required
                 # for the last curves
 
     # -----------------------------------------------------------------------
@@ -631,7 +632,8 @@ class BaseNEBPlot(object):
                                                 ticks=[-1, 0, 1],
                                                 orientation='vertical',
                                                 )
-        cbar.set_label(self.colorbar_label, rotation=270)
+        cbar.set_label(self.colorbar_label, rotation=270,
+                       labelpad=self.colorbar_offset)
 
     def insert_top_plot(self):
 
