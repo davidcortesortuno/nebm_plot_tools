@@ -1415,7 +1415,7 @@ class plot_dist_vs_energy(BaseNEBPlot):
     def plot_widget(self):
         max_steps = len(np.loadtxt(self.sims[0][0]))
         axcolor = 'lightgoldenrodyellow'
-        ax_slider = plt.axes([0.13, 0.95, 0.77, 0.03], axisbg=axcolor)
+        ax_slider = plt.axes([0.13, 0.95, 0.77, 0.03], facecolor=axcolor)
         self.step = Slider(ax_slider, 'step', 0, max_steps - 1,
                            valinit=-1, valfmt=u'%d')
 
