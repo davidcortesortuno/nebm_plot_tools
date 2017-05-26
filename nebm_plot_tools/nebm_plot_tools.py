@@ -7,9 +7,9 @@ imp_message = ("The Energy scale is in Joules. If you want to "
                "labels, use the neb_plot_functions.scale_label variable. "
                "In this way, the energy data will be divided by *scale*, "
                "e.g. \n "
-               "import neb_plot_functions as npf \n"
-               "npf.scale = 1000 \n"
-               "npf.scale_label = 'kJ' "
+               "import nebm_plot_tools as npt \n"
+               "npt.scale = 1000 \n"
+               "npt.scale_label = 'kJ' "
                )
 warnings.warn(imp_message)
 
@@ -153,10 +153,10 @@ plt.rcParams['legend.edgecolor'] = 'inherit'
 # -----------------------------------------------------------------------------
 
 # Colourmaps
-import npf_colormaps as npf_cm
+from . import npt_colormaps as npt_cm
 
 # To annotate Mayavi snapshots
-import annotate_snapshots
+from . import annotate_snapshots
 
 # -----------------------------------------------------------------------------
 
@@ -248,7 +248,7 @@ except ImportError:
 # COMMON FUNCTIONS (Labels, legends, etc)
 
 # Default Colour Palette from the colourmpas library
-D_PALETTE = npf_cm.d_palette1
+D_PALETTE = npt_cm.d_palette1
 
 # Default annotated numbers size
 DEFAULT_NUM_FONTSIZE = 18
@@ -2003,7 +2003,7 @@ class plot_energy_barrier_evol(BaseNEBPlot):
         # ax.set_color_cycle([cm(k) for k in np.linspace(0, 1, len(fnames) * 2)])
         d_palette_c = ['2C4C8F', 'FF5814', '000000', '542437', 'D91D2C',
                        '8F5536', '6F6F6F']
-        d_palette_c = [npf_cm.hex_to_rgb(c) for c in d_palette_c]
+        d_palette_c = [npt_cm.hex_to_rgb(c) for c in d_palette_c]
         self.ax.set_prop_cycle(cycler('color', d_palette_c))
 
         # ---------------------------------------------------------------------
