@@ -1,4 +1,4 @@
-# NEBM Plot Functions
+# NEBM Plot Tools
 
 Plot library for the NEBM data produced by Fidimag (and Finmag)
 
