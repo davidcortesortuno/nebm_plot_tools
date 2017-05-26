@@ -141,7 +141,16 @@ matplotlib.rc('lines', lw=2)
 
 # Import matplotlib.pyplot after doing the changes
 import matplotlib.pyplot as plt
-# reload(plt)
+# DPI for on screen figures
+plt.rcParams['figure.dpi'] = 100
+
+# Keep legends with the old Matplolib style (it changes in 2.0)
+plt.rcParams['legend.fancybox'] = False
+plt.rcParams['legend.framealpha'] = None
+plt.rcParams['legend.scatterpoints'] = 3
+plt.rcParams['legend.edgecolor'] = 'inherit'
+
+# -----------------------------------------------------------------------------
 
 # Colourmaps
 import npf_colormaps as npf_cm
@@ -163,7 +172,10 @@ import subprocess
 import re
 from cycler import cycler
 
-from mayavi import mlab
+try:
+    from mayavi import mlab
+except:
+    pass
 from matplotlib.cm import get_cmap
 
 # For the colourbar
@@ -1024,10 +1036,10 @@ def plot_mayavi2(simname,
         elif BACKEND == 'FIDIMAG':
             # Read a data file.
             data = mlab.pipeline.open('{}vtks/{}/'
-                                      'm_000000.{}'.format(rel_folder,
-                                                           simname,
-                                                           'vtk'  # can be an option
-                                                           ))
+                                      'image_000000.{}'.format(rel_folder,
+                                                               simname,
+                                                               'vtk'  # can be an option
+                                                               ))
     except:
         print('Not a valid VTK file (check the files path)')
         sys.exit(1)
@@ -1035,7 +1047,7 @@ def plot_mayavi2(simname,
     # Currently fidimag does not filter the points with zero Ms
     # We will avoid them using a threshold value for the magnetisation norm
     # Finmag does not have this problem
-    if BACKEND == 'FIDIMAG':
+    if BACKEND == 'FINMAG':
         # Extract vector components.
         vecomp = mlab.pipeline.extract_vector_components(data)
     else:
