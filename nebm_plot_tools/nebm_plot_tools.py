@@ -935,22 +935,39 @@ class BaseNEBPlot(object):
         if self.savefig:
             plt.savefig(self.savefig, bbox_inches='tight')
 
-    def interpolate_energy_curve(self, npys_folder):
+    def interpolate_energy_curve(self, _source):
         """
 
+        source  :: Folder with npys images or a data file with the
+                   interpolation data
+
+        npys folder ::
         This function loads the images from the specified NPY folder into a
         NEBM simulation and returns two arrays with the data to interpolate an
         energy curve. Thus, the function requires that: self.nebm_class,
         self.simulation and self.interp_res are defined (how they are defined
         depends on the child class).
 
+        data file::
+        When passing the path to a file this function will load the first
+        column as distances and the second column as the energies
+
         """
-        images = [np.load(os.path.join(npys_folder, _file))
-                  for _file in sorted(os.listdir(npys_folder),
-                                      key=lambda f: int(re.search('\d+', f).group(0))
-                                      )]
-        nebm_sim = self.nebm_class(self.simulation, images)
-        l, E = nebm_sim.compute_polynomial_approximation(self.interp_res)
+
+        if os.path.isdir(_source):
+            images = [np.load(os.path.join(_source, _file))
+                      for _file in sorted(os.listdir(_source),
+                                          key=lambda f: int(re.search('\d+', f).group(0))
+                                          )]
+            nebm_sim = self.nebm_class(self.simulation, images)
+            l, E = nebm_sim.compute_polynomial_approximation(self.interp_res)
+
+        elif os.path.isfile(_source):
+            data = np.loadtxt(_source)
+            l, E = data[:, 0], data[:, 1]
+
+        else:
+            raise('Specify either a path to a folder or a data file')
 
         return l, E
 
@@ -1258,14 +1275,21 @@ class plot_dist_vs_energy(BaseNEBPlot):
 
     widget          ::
 
-    interpolate_energy   ::  Specify a list with three elements: a Fidimag NEBM
-                             simulation class, a simulation object and an
-                             integer indicating the number of interpolated
-                             points; in order to compute a smooth approximation
-                             of the energy bands, using the information from
-                             the nebm vectors.  In the sims list, the last
-                             argument must be the path towards the NPY file to
-                             interpolate the data
+    interpolate_energy   ::  Specify this option either as:
+
+                             - True (boolean) :: This will only take the paths
+                               to data files in the sims list, to load the data
+                               from interpolation which has been previously
+                               computed
+
+                             - as a list with three elements: a Fidimag NEBM
+                               simulation class, a simulation object and an
+                               integer indicating the number of interpolated
+                               points; in order to compute a smooth
+                               approximation of the energy bands, using the
+                               information from the nebm vectors.  In the sims
+                               list, the last argument must be the path towards
+                               the NPY file to interpolate the data
 
     """
     # Inherit the doc from the BasePlot
@@ -1285,9 +1309,15 @@ class plot_dist_vs_energy(BaseNEBPlot):
          ) = (0, 1, 2, 3)
 
         if self.interpolate_energy:
-            self.nebm_class = self.interpolate_energy[0]
-            self.simulation = self.interpolate_energy[1]
-            self.interp_res = self.interpolate_energy[2]
+            if type(self.interpolate_energy) == list:
+                self.nebm_class = self.interpolate_energy[0]
+                self.simulation = self.interpolate_energy[1]
+                self.interp_res = self.interpolate_energy[2]
+            elif type(self.interpolate_energy) == bool:
+                pass
+            else:
+                raise('Not valid option for interpolation: list or bool')
+
             self.nebm_index = 4
 
         self.plot_neb_curves()
@@ -1346,6 +1376,9 @@ class plot_dist_vs_energy(BaseNEBPlot):
                                 )[names[self.step_index]][1:]
 
             # Get the data from interpolation if the option was specified
+            # The argument can be either a path to a folder with npy files
+            # (which requires self.simulation to be defined)
+            # or a data file with the interpolation data
             if self.interpolate_energy:
                 x_interp, y_interp = self.interpolate_energy_curve(
                     self.rel_folder + names[self.nebm_index])
@@ -1481,6 +1514,8 @@ class plot_dist_vs_sknum(BaseNEBPlot):
                             Specify this option as a two elements list with:
                             (i) the NEBM class and (ii) te resolution of the
                             interpolation.
+
+                            (not accepting data files for now)
 
     """
     # Inherit the doc from the BasePlot

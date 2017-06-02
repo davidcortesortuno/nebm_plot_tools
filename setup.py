@@ -11,4 +11,5 @@ setup(
     ],
     packages=['nebm_plot_tools'],
     license='MIT',
+    include_package_data=True
 )
