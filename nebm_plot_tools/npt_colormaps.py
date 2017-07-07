@@ -154,10 +154,12 @@ def generate_mayavi_cmap(mpl_cmap):
     values = np.linspace(0., 1., 256)
     cmap = get_cmap(mpl_cmap)(values.copy())
 
-    for i in range(4):
-        cmap[:, i] = [int(x * 255) for x in cmap[:, i]]
+    # for i in range(4):
+    #     cmap[:, i] = [int(x * 255) for x in cmap[:, i]]
 
-    cmap = zip(cmap[:, 0], cmap[:, 1], cmap[:, 2], cmap[:, 3])
+    cmap = np.array([list(x) for x in
+                     zip(cmap[:, 0], cmap[:, 1], cmap[:, 2], cmap[:, 3])
+                     ])
 
     return cmap
 

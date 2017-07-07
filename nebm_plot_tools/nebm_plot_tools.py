@@ -967,7 +967,7 @@ class BaseNEBPlot(object):
             l, E = data[:, 0], data[:, 1]
 
         else:
-            raise('Specify either a path to a folder or a data file')
+            raise Exception('Specify either a path to a folder or a data file')
 
         return l, E
 
@@ -1316,7 +1316,7 @@ class plot_dist_vs_energy(BaseNEBPlot):
             elif type(self.interpolate_energy) == bool:
                 pass
             else:
-                raise('Not valid option for interpolation: list or bool')
+                raise Exception('Not valid option for interpolation: list or bool')
 
             self.nebm_index = 4
 
