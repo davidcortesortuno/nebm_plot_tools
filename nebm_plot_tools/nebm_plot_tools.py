@@ -993,6 +993,7 @@ def plot_mayavi2(simname,
                  # fidimag=False,
                  text_fontsize=170,
                  text_color='black',
+                 text_position=(0.99, 0.98),
                  offscreen=True
                  ):
     """
@@ -1152,7 +1153,8 @@ def plot_mayavi2(simname,
     # Annotate snapshots with Matplotlib
     annotate_snapshots.annotate_snapshots(imrootd,
                                           color=text_color,
-                                          fontsize=text_fontsize
+                                          fontsize=text_fontsize,
+                                          text_position=text_position
                                           )
 
     # Save a grid of images if savef is True
