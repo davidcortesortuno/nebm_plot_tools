@@ -993,6 +993,7 @@ def plot_mayavi2(simname,
                  # fidimag=False,
                  text_fontsize=170,
                  text_color='black',
+                 annotate_numbers=True
                  ):
     """
     Return a sequence of images showing the z component of the magnetization
@@ -1146,10 +1147,11 @@ def plot_mayavi2(simname,
             shutil.move(f, imrootd)
 
     # Annotate snapshots with Matplotlib
-    annotate_snapshots.annotate_snapshots(imrootd,
-                                          color=text_color,
-                                          fontsize=text_fontsize
-                                          )
+    if annotate_numbers is True:
+        annotate_snapshots.annotate_snapshots(imrootd,
+                                              color=text_color,
+                                              fontsize=text_fontsize
+                                              )
 
     # Save a grid of images if savef is True
     if savef:
