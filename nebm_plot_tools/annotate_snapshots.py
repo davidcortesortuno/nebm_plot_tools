@@ -8,7 +8,11 @@ import numpy as np
 import re
 
 
-def annotate_snapshots(pngs_folder_path, fontsize=26, color='black'):
+def annotate_snapshots(pngs_folder_path, 
+                       fontsize=26, 
+                       color='black',
+                       text_position=(0.99, 0.98)
+                       ):
 
     if not pngs_folder_path.endswith('/'):
         pngs_folder_path += '/'
@@ -28,7 +32,7 @@ def annotate_snapshots(pngs_folder_path, fontsize=26, color='black'):
     fig.axes[0].get_yaxis().set_visible(False)
 
     plot = ax.imshow(matplotlib.image.imread(pngs_list_full[0]))
-    text = ax.text(0.99, 0.98,
+    text = ax.text(text_position[0], text_position[1],
                    r'',
                    transform=ax.transAxes,
                    va='top', ha='right',

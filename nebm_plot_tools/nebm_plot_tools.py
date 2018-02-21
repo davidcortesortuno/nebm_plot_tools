@@ -993,7 +993,9 @@ def plot_mayavi2(simname,
                  # fidimag=False,
                  text_fontsize=170,
                  text_color='black',
-                 annotate_numbers=True
+                 annotate_numbers=True,
+                 text_position=(0.99, 0.98),
+                 offscreen=True
                  ):
     """
     Return a sequence of images showing the z component of the magnetization
@@ -1040,6 +1042,9 @@ def plot_mayavi2(simname,
     interpolation --> Surface interpolation: 'gouraud', 'phong', 'flat'
 
     """
+
+    if offscreen:
+        mlab.options.offscreen = True
 
     # Figure specs
     f = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0), size=(200, 200))
@@ -1150,12 +1155,13 @@ def plot_mayavi2(simname,
     if annotate_numbers is True:
         annotate_snapshots.annotate_snapshots(imrootd,
                                               color=text_color,
-                                              fontsize=text_fontsize
+                                              fontsize=text_fontsize,
+                                              text_position=text_position
                                               )
 
     # Save a grid of images if savef is True
     if savef:
-        subprocess.Popen('cd {} && montage -geometry {} -tile {} {}* {}'.
+        subprocess.Popen('cd {} && montage -mode concatenate -geometry {} -tile {} {}* {}'.
                          format(imrootd, thumbnails_size, gridn,
                                 simname, savef), shell=True)
 
